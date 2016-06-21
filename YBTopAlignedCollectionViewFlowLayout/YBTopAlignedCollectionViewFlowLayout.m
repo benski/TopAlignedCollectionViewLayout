@@ -46,7 +46,7 @@
 
 - (UICollectionViewLayoutAttributes *)layoutAttributesForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-    UICollectionViewLayoutAttributes *currentItemAttributes = [super layoutAttributesForItemAtIndexPath:indexPath];
+    UICollectionViewLayoutAttributes *currentItemAttributes = [super layoutAttributesForItemAtIndexPath:indexPath].copy;
     CGFloat topInset = [self.delegate collectionView:self.collectionView layout:self insetForSectionAtIndex:indexPath.section].top;
 
     // First row should be aligned at the top
@@ -64,20 +64,23 @@
      * if (firstItemInRow) Get height of highest item of previous row, add it to the origin.y of that item and assign it to the current item + topinset
      * else (secondItemInRow OR thirdItemInRow) origin.y should be the same as the first item in the row
     */
-    if (indexPath.item % 3 == 0) {
+    if (indexPath.item % self.numColumns == 0) {
+        NSMutableArray *heights = NSMutableArray.new;
         // Get the heights of the previous row's items
+        for (int i=0;i<self.numColumns;i++) {
+            CGRect frame = [self getFrameForItem:indexPath.item - (self.numColumns - i) inSection:indexPath.section];
+            [heights addObject:@(CGRectGetHeight(frame))];
+        }
+        
         CGRect frameOne = [self getFrameForItem:indexPath.item - self.numColumns inSection:indexPath.section];
-        CGRect frameTwo = [self getFrameForItem:indexPath.item - (self.numColumns - 1) inSection:indexPath.section];
-        CGRect frameThree = [self getFrameForItem:indexPath.item - (self.numColumns - 2) inSection:indexPath.section];
-
         // Add them to an array and retreive the biggest value
-        NSArray *heights = @[@(frameOne.size.height), @(frameTwo.size.height), @(frameThree.size.height)];
+
         CGFloat highestValue = [[heights valueForKeyPath:@"@max.self"] floatValue];
         
         // Assign the highest value to the y coordinate of its frame
         currentItemAttributes.frame = ({
             CGRect frame = currentItemAttributes.frame;
-            frame.origin.y = topInset + frameOne.origin.y + highestValue;
+            frame.origin.y = topInset + frameOne.origin.y + highestValue + self.minimumLineSpacing;
             frame;
         });
         
